@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>x402 Mock Demo (No Money)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #05060b;
+    }
+    body {
+      background:
+        radial-gradient(circle at 20% 20%, rgba(66, 230, 182, 0.14), transparent 32%),
+        radial-gradient(circle at 78% 12%, rgba(76, 196, 255, 0.14), transparent 28%),
+        linear-gradient(140deg, #05060b 0%, #05060b 55%, #0a0d15 100%);
+    }
+    .btn-grad {
+      background: linear-gradient(145deg, #42e6b6, #4cc4ff);
+      box-shadow: 0 14px 32px rgba(64, 195, 255, 0.32);
+    }
+    .btn-grad:hover { filter: brightness(1.05); }
+    .panel { background: #0e111a; }
+    .panel-soft { background: #121622; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 pb-10">
+    <section class="text-center py-8 space-y-4">
+      <div class="inline-flex items-center gap-2 rounded-full border border-slate-700/70 bg-white/5 px-4 py-2 text-sm font-semibold">
+        HTTP 402 Payment Required · Mocked
+      </div>
+      <div>
+        <h1 class="text-3xl sm:text-4xl font-bold">x402 Data Utilities Demo</h1>
+        <p class="mt-2 text-slate-400">Toggle the mock payment header to see the 402 → 200 flow. No money, fully local.</p>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3">
+        <label class="inline-flex items-center gap-3 rounded-xl border border-slate-700/70 bg-white/5 px-4 py-3 shadow-lg">
+          <input type="checkbox" id="mockPaidToggle" class="h-5 w-5 accent-emerald-400" />
+          <span class="font-semibold">Include Mock Paid Header (X-X402-Mock-Paid)</span>
+        </label>
+        <span id="statusBadge" class="inline-flex items-center gap-2 rounded-xl border border-slate-700/70 bg-white/5 px-4 py-3 text-sm font-bold">Waiting…</span>
+        <div class="inline-flex items-center gap-2 rounded-xl border border-slate-700/70 bg-white/5 px-4 py-3 text-sm font-semibold">
+          API: http://localhost:8000
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs uppercase text-slate-400"><span class="font-bold text-emerald-300">POST</span><span>/summarize/logs</span></div>
+        <h2 class="text-lg font-semibold">Summarize Logs</h2>
+        <p class="text-sm text-slate-400">Plain text input</p>
+        <textarea id="logsInput" class="panel-soft w-full rounded-xl border border-slate-800 px-3 py-3 text-sm" rows="5">ERROR db timeout
+ERROR db timeout
+WARN cache miss</textarea>
+        <button class="btn-grad w-full rounded-xl px-4 py-3 text-base font-bold text-slate-900" onclick="sendLogs()">Send Request</button>
+      </div>
+
+      <div class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs uppercase text-slate-400"><span class="font-bold text-emerald-300">POST</span><span>/clean/dataframe</span></div>
+        <h2 class="text-lg font-semibold">Clean DataFrame (JSON)</h2>
+        <p class="text-sm text-slate-400">JSON body with rules</p>
+        <textarea id="cleanJsonInput" class="panel-soft w-full rounded-xl border border-slate-800 px-3 py-3 text-sm" rows="8">{
+  "data": [
+    {"name": " Alice ", "age": "30", "city": "nyc"},
+    {"name": "Bob", "age": "thirty", "city": "NYC"},
+    {"name": "Alice", "age": "30", "city": "nyc"}
+  ],
+  "rules": {
+    "normalize_columns": true,
+    "trim_strings": true,
+    "deduplicate": true,
+    "coerce_types": {"age": "int"}
+  }
+}</textarea>
+        <button class="btn-grad w-full rounded-xl px-4 py-3 text-base font-bold text-slate-900" onclick="sendCleanJson()">Send Request</button>
+      </div>
+
+      <div class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs uppercase text-slate-400"><span class="font-bold text-emerald-300">POST</span><span>/clean/dataframe</span></div>
+        <h2 class="text-lg font-semibold">Clean DataFrame (CSV)</h2>
+        <p class="text-sm text-slate-400">Upload CSV + optional rules</p>
+        <label class="text-sm font-semibold">CSV File</label>
+        <input type="file" id="cleanCsvFile" accept=".csv" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" />
+        <label class="text-sm font-semibold mt-1">Rules JSON (optional)</label>
+        <textarea id="cleanCsvRules" class="panel-soft w-full rounded-xl border border-slate-800 px-3 py-3 text-sm" rows="3" placeholder='{"trim_strings": true, "deduplicate": true}'></textarea>
+        <button class="btn-grad w-full rounded-xl px-4 py-3 text-base font-bold text-slate-900" onclick="sendCleanCsv()">Send Request</button>
+      </div>
+
+      <div class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3 sm:col-span-2 lg:col-span-2">
+        <div class="flex items-center justify-between text-xs uppercase text-slate-400"><span class="font-bold text-emerald-300">POST</span><span>/validate/csv</span></div>
+        <h2 class="text-lg font-semibold">Validate CSV (Advanced)</h2>
+        <p class="text-sm text-slate-400">Upload CSV and build validation config</p>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="space-y-2">
+            <label class="text-sm font-semibold">CSV File</label>
+            <input type="file" id="validateFile" accept=".csv" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" />
+            <label class="text-sm font-semibold">required_columns (JSON array)</label>
+            <input id="requiredCols" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder='["name","age"]' />
+            <label class="text-sm font-semibold">types (JSON object)</label>
+            <input id="typeMap" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder='{"age":"int"}' />
+          </div>
+          <div class="space-y-2">
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgStrip" checked class="accent-emerald-400" /> Strip whitespace</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgNoEmptyHeaders" checked class="accent-emerald-400" /> No empty headers</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgNoEmptyRows" checked class="accent-emerald-400" /> No empty rows</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgNoEmptyCells" class="accent-emerald-400" /> No empty cells</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgNoNegatives" class="accent-emerald-400" /> No negative numbers</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="cfgIncludeCsv" class="accent-emerald-400" /> Include downloadable CSV</label>
+        </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-sm font-semibold">max_rows</label>
+                <input id="cfgMaxRows" type="number" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="50000" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold">max_cols</label>
+                <input id="cfgMaxCols" type="number" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="200" />
+              </div>
+            </div>
+            <label class="text-sm font-semibold">Non-negative numeric columns (comma-separated)</label>
+            <input id="cfgNonNegative" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="price,quantity" />
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="cfgEmailToggle" checked class="accent-emerald-400" />
+                <input id="cfgEmailCol" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="email" />
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="cfgPhoneToggle" checked class="accent-emerald-400" />
+                <input id="cfgPhoneCol" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="phone" />
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="cfgUniqueToggle" class="accent-emerald-400" />
+              <input id="cfgUniqueCols" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" placeholder="date,product_id" />
+            </div>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div>
+            <label class="text-sm font-semibold">type_rules JSON (advanced)</label>
+            <textarea id="cfgTypeRules" class="panel-soft w-full rounded-xl border border-slate-800 px-3 py-3 text-sm" rows="3" placeholder='{"price":{"type":"float","min":0},"quantity":{"type":"int","min":0}}'></textarea>
+          </div>
+          <div>
+            <label class="text-sm font-semibold">regex_rules JSON (advanced)</label>
+            <textarea id="cfgRegexRules" class="panel-soft w-full rounded-xl border border-slate-800 px-3 py-3 text-sm" rows="3" placeholder='{"email":{"pattern":"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$","required":false}}'></textarea>
+          </div>
+        </div>
+        <button class="btn-grad w-full rounded-xl px-4 py-3 text-base font-bold text-slate-900" onclick="sendValidate()">Validate CSV</button>
+      </div>
+
+      <div class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs uppercase text-slate-400"><span class="font-bold text-emerald-300">POST</span><span>/extract/pdf</span></div>
+        <h2 class="text-lg font-semibold">Extract PDF</h2>
+        <p class="text-sm text-slate-400">Upload PDF and choose mode</p>
+        <label class="text-sm font-semibold">PDF File</label>
+        <input type="file" id="pdfFile" accept=".pdf" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm" />
+        <label class="text-sm font-semibold">Mode</label>
+        <select id="pdfMode" class="w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm">
+          <option value="text">text</option>
+          <option value="tables">tables</option>
+          <option value="both">both</option>
+        </select>
+        <button class="btn-grad w-full rounded-xl px-4 py-3 text-base font-bold text-slate-900" onclick="sendPdf()">Send Request</button>
+      </div>
+    </section>
+
+    <section class="panel rounded-2xl border border-slate-800 shadow-2xl p-4 mt-4 space-y-3">
+      <h2 class="text-lg font-semibold">Results & Evidence</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+        <div><div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-1 text-xs font-semibold">X-X402-Price</div><pre id="hdrPrice" class="panel-soft mt-2 rounded-lg border border-slate-800 px-2 py-2">-</pre></div>
+        <div><div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-1 text-xs font-semibold">X-X402-PayTo</div><pre id="hdrPayTo" class="panel-soft mt-2 rounded-lg border border-slate-800 px-2 py-2">-</pre></div>
+        <div><div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-1 text-xs font-semibold">X-X402-Path</div><pre id="hdrPath" class="panel-soft mt-2 rounded-lg border border-slate-800 px-2 py-2">-</pre></div>
+        <div><div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-1 text-xs font-semibold">X-X402-Mock-Settled</div><pre id="hdrSettled" class="panel-soft mt-2 rounded-lg border border-slate-800 px-2 py-2">-</pre></div>
+      </div>
+      <div>
+        <div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-1 text-xs font-semibold">Response Body</div>
+        <pre id="bodyBox" class="panel-soft mt-2 rounded-lg border border-slate-800 px-3 py-3 text-sm">-</pre>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex gap-2">
+          <div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-2 text-sm font-semibold">Errors: <span id="errCount" class="ml-1">-</span></div>
+          <div class="inline-flex rounded-lg border border-slate-700/80 bg-white/5 px-3 py-2 text-sm font-semibold">Warnings: <span id="warnCount" class="ml-1">-</span></div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-grad rounded-xl px-4 py-2 text-sm font-bold text-slate-900" onclick="downloadReport()">Download JSON</button>
+          <button class="btn-grad rounded-xl px-4 py-2 text-sm font-bold text-slate-900" onclick="downloadCsv()">Download CSV</button>
+        </div>
+      </div>
+      <div>
+        <div class="text-xs uppercase text-slate-400 mb-1">Top 20 errors</div>
+        <table class="w-full border-collapse text-sm">
+          <thead class="bg-slate-900/60">
+            <tr>
+              <th class="border border-slate-800 px-2 py-2">Row</th>
+              <th class="border border-slate-800 px-2 py-2">Column</th>
+              <th class="border border-slate-800 px-2 py-2">Code</th>
+              <th class="border border-slate-800 px-2 py-2">Message</th>
+              <th class="border border-slate-800 px-2 py-2">Value</th>
+            </tr>
+          </thead>
+          <tbody id="errorTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const toggle = document.getElementById("mockPaidToggle");
+    const statusBadge = document.getElementById("statusBadge");
+    const hdrPrice = document.getElementById("hdrPrice");
+    const hdrPayTo = document.getElementById("hdrPayTo");
+    const hdrPath = document.getElementById("hdrPath");
+    const hdrSettled = document.getElementById("hdrSettled");
+    const bodyBox = document.getElementById("bodyBox");
+    const errCountEl = document.getElementById("errCount");
+    const warnCountEl = document.getElementById("warnCount");
+    const errorTableBody = document.getElementById("errorTableBody");
+    let lastValidationResult = null;
+    let lastValidationCsv = null;
+
+    function setStatus(code) {
+      let cls = "inline-flex items-center gap-2 rounded-xl border border-slate-700/70 px-4 py-3 text-sm font-bold ";
+      if (code === 402) cls += "bg-red-500/20 text-red-200";
+      else if (code === 200) cls += "bg-emerald-500/20 text-emerald-200";
+      else cls += "bg-white/10 text-slate-200";
+      statusBadge.textContent = `Status ${code}`;
+      statusBadge.className = cls;
+    }
+
+    function showResult(path, code, headers, body) {
+      setStatus(code);
+      hdrPrice.textContent = headers.get("x-x402-price") || "-";
+      hdrPayTo.textContent = headers.get("x-x402-payto") || "-";
+      hdrPath.textContent = headers.get("x-x402-path") || "-";
+      hdrSettled.textContent = headers.get("x-x402-mock-settled") || "-";
+      try {
+        const txt = typeof body === "string" ? body : JSON.stringify(body, null, 2);
+        bodyBox.textContent = txt.length > 2000 ? txt.slice(0, 2000) + "\\n...truncated..." : txt;
+      } catch (e) {
+        bodyBox.textContent = String(body);
+      }
+      if (path === "/validate/csv" && body && typeof body === "object") {
+        renderValidation(body);
+      } else {
+        lastValidationResult = null;
+        lastValidationCsv = null;
+        errCountEl.textContent = "-";
+        warnCountEl.textContent = "-";
+        errorTableBody.innerHTML = "";
+      }
+    }
+
+    function getCommonHeaders() {
+      const h = {};
+      if (toggle.checked) h["X-X402-Mock-Paid"] = "true";
+      return h;
+    }
+
+    async function fetchWithBody(path, options) {
+      const headers = options.headers || {};
+      Object.assign(headers, getCommonHeaders());
+      try {
+        const res = await fetch(path, { ...options, headers });
+        const ct = res.headers.get("content-type") || "";
+        const body = ct.includes("application/json") ? await res.json() : await res.text();
+        showResult(path, res.status, res.headers, body);
+      } catch (err) {
+        setStatus("ERR");
+        bodyBox.textContent = "Network error: " + err;
+      }
+    }
+
+    function sendLogs() {
+      const text = document.getElementById("logsInput").value;
+      fetchWithBody("/summarize/logs", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: text
+      });
+    }
+
+    function sendCleanJson() {
+      let payload;
+      try { payload = JSON.parse(document.getElementById("cleanJsonInput").value); }
+      catch (e) { alert("Invalid JSON payload"); return; }
+      fetchWithBody("/clean/dataframe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    function sendCleanCsv() {
+      const file = document.getElementById("cleanCsvFile").files[0];
+      if (!file) { alert("Pick a CSV file"); return; }
+      const rulesTxt = document.getElementById("cleanCsvRules").value.trim();
+      const fd = new FormData();
+      fd.append("file", file);
+      if (rulesTxt) fd.append("rules", rulesTxt);
+      fetchWithBody("/clean/dataframe", { method: "POST", body: fd });
+    }
+
+    function buildValidationConfig() {
+      const cfg = {
+        strip_whitespace: document.getElementById("cfgStrip").checked,
+        no_empty_headers: document.getElementById("cfgNoEmptyHeaders").checked,
+        no_empty_rows: document.getElementById("cfgNoEmptyRows").checked,
+        no_empty_cells: document.getElementById("cfgNoEmptyCells").checked,
+        no_negative_numbers: document.getElementById("cfgNoNegatives").checked,
+        include_csv: document.getElementById("cfgIncludeCsv").checked,
+        max_rows: parseInt(document.getElementById("cfgMaxRows").value || "0", 10) || 50000,
+        max_cols: parseInt(document.getElementById("cfgMaxCols").value || "0", 10) || 200,
+        type_rules: {},
+        regex_rules: {},
+        enum_rules: {},
+        unique_rules: [],
+        sample_errors_limit: 200
+      };
+
+      const nonNeg = document.getElementById("cfgNonNegative").value.split(",").map(s => s.trim()).filter(Boolean);
+      nonNeg.forEach(col => { cfg.type_rules[col] = { type: "float", min: 0 }; });
+
+      if (document.getElementById("cfgEmailToggle").checked) {
+        const col = (document.getElementById("cfgEmailCol").value || "email").trim();
+        if (col) cfg.regex_rules[col] = { pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", required: false };
+      }
+      if (document.getElementById("cfgPhoneToggle").checked) {
+        const col = (document.getElementById("cfgPhoneCol").value || "phone").trim();
+        if (col) cfg.regex_rules[col] = { pattern: "^\\+?[0-9()\\-\\s]{7,}$", required: false };
+      }
+
+      if (document.getElementById("cfgUniqueToggle").checked) {
+        const cols = (document.getElementById("cfgUniqueCols").value || "").split(",").map(s => s.trim()).filter(Boolean);
+        if (cols.length) cfg.unique_rules.push({ columns: cols, case_insensitive: true });
+      }
+
+      const typeRulesTxt = document.getElementById("cfgTypeRules").value.trim();
+      if (typeRulesTxt) {
+        try {
+          const extra = JSON.parse(typeRulesTxt);
+          Object.assign(cfg.type_rules, extra);
+        } catch (e) { alert("Invalid type_rules JSON"); }
+      }
+
+      const regexRulesTxt = document.getElementById("cfgRegexRules").value.trim();
+      if (regexRulesTxt) {
+        try {
+          const extra = JSON.parse(regexRulesTxt);
+          Object.assign(cfg.regex_rules, extra);
+        } catch (e) { alert("Invalid regex_rules JSON"); }
+      }
+
+      return cfg;
+    }
+
+    function sendValidate() {
+      const file = document.getElementById("validateFile").files[0];
+      if (!file) { alert("Pick a CSV file"); return; }
+      const reqCols = document.getElementById("requiredCols").value;
+      const types = document.getElementById("typeMap").value;
+      const configObj = buildValidationConfig();
+      const fd = new FormData();
+      fd.append("file", file);
+      if (reqCols.trim()) fd.append("required_columns", reqCols.trim());
+      if (types.trim()) fd.append("types", types.trim());
+      fd.append("config", JSON.stringify(configObj));
+      fetchWithBody("/validate/csv", { method: "POST", body: fd });
+    }
+
+    function sendPdf() {
+      const file = document.getElementById("pdfFile").files[0];
+      if (!file) { alert("Pick a PDF file"); return; }
+      const mode = document.getElementById("pdfMode").value;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("mode", mode);
+      fetchWithBody("/extract/pdf", { method: "POST", body: fd });
+    }
+
+    function renderValidation(body) {
+      lastValidationResult = body;
+      lastValidationCsv = body.csv || null;
+      errCountEl.textContent = body.error_count ?? (body.errors ? body.errors.length : 0);
+      warnCountEl.textContent = body.warning_count ?? (body.warnings ? body.warnings.length : 0);
+      const rows = (body.errors || []).slice(0, 20).map(err => {
+        const tr = document.createElement("tr");
+        const cells = [
+          err.row !== undefined && err.row !== null ? err.row : "",
+          err.column || "",
+          err.code || "",
+          err.message || "",
+          err.value !== undefined && err.value !== null ? String(err.value) : ""
+        ];
+        cells.forEach(c => {
+          const td = document.createElement("td");
+          td.textContent = c;
+          tr.appendChild(td);
+        });
+        return tr;
+      });
+      errorTableBody.innerHTML = "";
+      rows.forEach(r => errorTableBody.appendChild(r));
+    }
+
+    function downloadReport() {
+      if (!lastValidationResult) { alert("No validation report yet."); return; }
+      const blob = new Blob([JSON.stringify(lastValidationResult, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "validation_report.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCsv() {
+      if (!lastValidationCsv) { alert("No CSV available. Enable 'Include downloadable CSV' before validating."); return; }
+      const blob = new Blob([lastValidationCsv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "validated.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
