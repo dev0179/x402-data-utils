@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -46,13 +45,13 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
   )
   const [file, setFile] = useState<File | null>(null)
   const [csvRules, setCsvRules] = useState("")
-  const [pdfMode, setPdfMode] = useState("text")
 
   // Validation config states
   const [stripWhitespace, setStripWhitespace] = useState(true)
   const [noEmptyHeaders, setNoEmptyHeaders] = useState(true)
   const [noEmptyRows, setNoEmptyRows] = useState(true)
   const [noEmptyCells, setNoEmptyCells] = useState(false)
+  const [noEmptyColumns, setNoEmptyColumns] = useState(false)
   const [noNegatives, setNoNegatives] = useState(false)
   const [includeCsv, setIncludeCsv] = useState(false)
   const [maxRows, setMaxRows] = useState("50000")
@@ -62,6 +61,8 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
   const [cleanNormalize, setCleanNormalize] = useState(true)
   const [cleanTrim, setCleanTrim] = useState(true)
   const [cleanDropEmptyRows, setCleanDropEmptyRows] = useState(true)
+  const [cleanDropEmptyCols, setCleanDropEmptyCols] = useState(false)
+  const [cleanDropColumns, setCleanDropColumns] = useState("")
   const [cleanDedupe, setCleanDedupe] = useState(true)
   const [cleanNoNegatives, setCleanNoNegatives] = useState(false)
   const [cleanNegativeCols, setCleanNegativeCols] = useState("")
@@ -91,6 +92,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
         normalize_columns: cleanNormalize,
         trim_strings: cleanTrim,
         drop_empty_rows: cleanDropEmptyRows,
+        drop_empty_columns: cleanDropEmptyCols,
         deduplicate: cleanDedupe,
         remove_negative_rows: cleanNoNegatives,
       }
@@ -100,6 +102,13 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
         .filter(Boolean)
       if (negCols.length) {
         rules.negative_columns = negCols
+      }
+      const dropCols = cleanDropColumns
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (dropCols.length) {
+        rules.drop_columns = dropCols
       }
       if (csvRules.trim()) {
         try {
@@ -122,7 +131,6 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
       }
       const formData = new FormData()
       formData.append("file", file)
-      formData.append("mode", pdfMode)
       await onSubmit(path, { method, body: formData })
     } else if (type === "validate") {
       if (!file) {
@@ -134,6 +142,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
         no_empty_headers: noEmptyHeaders,
         no_empty_rows: noEmptyRows,
         no_empty_cells: noEmptyCells,
+        no_empty_columns: noEmptyColumns,
         no_negative_numbers: noNegatives,
         max_rows: Number.parseInt(maxRows) || 50000,
         max_cols: Number.parseInt(maxCols) || 200,
@@ -203,6 +212,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                     { label: "Normalize columns", checked: cleanNormalize, onChange: setCleanNormalize },
                     { label: "Trim strings", checked: cleanTrim, onChange: setCleanTrim },
                     { label: "Drop empty rows", checked: cleanDropEmptyRows, onChange: setCleanDropEmptyRows },
+                    { label: "Drop empty columns", checked: cleanDropEmptyCols, onChange: setCleanDropEmptyCols },
                     { label: "Deduplicate rows", checked: cleanDedupe, onChange: setCleanDedupe },
                     { label: "Remove negative rows", checked: cleanNoNegatives, onChange: setCleanNoNegatives },
                     { label: "Include downloadable CSV", checked: cleanIncludeCsv, onChange: setCleanIncludeCsv },
@@ -222,6 +232,17 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                   onChange={(e) => setCleanNegativeCols(e.target.value)}
                   className="bg-muted/50"
                   placeholder="price,amount"
+                />
+              </div>
+              <div className="mt-4">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
+                  Drop columns (comma-separated)
+                </Label>
+                <Input
+                  value={cleanDropColumns}
+                  onChange={(e) => setCleanDropColumns(e.target.value)}
+                  className="bg-muted/50"
+                  placeholder="col1,col2"
                 />
               </div>
               </div>
@@ -251,21 +272,6 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                   className="bg-muted/50"
                 />
               </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
-                  Extraction Mode
-                </Label>
-                <Select value={pdfMode} onValueChange={setPdfMode}>
-                  <SelectTrigger className="bg-muted/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="tables">Tables</SelectItem>
-                    <SelectItem value="both">Both</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </>
           )}
 
@@ -287,6 +293,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                     { label: "Strip whitespace", checked: stripWhitespace, onChange: setStripWhitespace },
                     { label: "No empty headers", checked: noEmptyHeaders, onChange: setNoEmptyHeaders },
                     { label: "No empty rows", checked: noEmptyRows, onChange: setNoEmptyRows },
+                    { label: "No empty columns", checked: noEmptyColumns, onChange: setNoEmptyColumns },
                     { label: "No empty cells", checked: noEmptyCells, onChange: setNoEmptyCells },
                     { label: "Check for negative numbers", checked: noNegatives, onChange: setNoNegatives },
                   ].map(({ label, checked, onChange }) => (

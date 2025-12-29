@@ -95,6 +95,8 @@ def clean_df(
     normalize_columns: bool = True,
     trim_strings: bool = True,
     drop_empty_rows: bool = True,
+    drop_empty_columns: bool = False,
+    drop_columns: Optional[List[str]] = None,
     drop_nulls: bool = False,
     drop_nulls_subset: Optional[List[str]] = None,
     deduplicate: bool = True,
@@ -109,6 +111,8 @@ def clean_df(
     changes: Dict[str, Any] = {
         "trimmed_string_cells": 0,
         "dropped_empty_rows": 0,
+        "dropped_empty_columns": 0,
+        "dropped_columns": [],
         "dropped_null_rows": 0,
         "deduped_rows": 0,
         "type_coercions": {},
@@ -136,6 +140,23 @@ def clean_df(
         tmp = df.replace({"": np.nan})
         df = df.loc[~tmp.isna().all(axis=1)].copy()
         changes["dropped_empty_rows"] = int(before_n - len(df))
+
+    if drop_empty_columns:
+        before_cols = set(df.columns)
+        tmp = df.replace({"": np.nan})
+        df = df.loc[:, ~tmp.isna().all(axis=0)].copy()
+        after_cols = set(df.columns)
+        dropped = list(before_cols - after_cols)
+        changes["dropped_empty_columns"] = len(dropped)
+        changes["dropped_columns"] = dropped
+
+    if drop_columns:
+        dropped_now = []
+        for c in drop_columns:
+            if c in df.columns:
+                df = df.drop(columns=[c])
+                dropped_now.append(c)
+        changes["dropped_columns"] = changes.get("dropped_columns", []) + dropped_now
 
     if parse_dates:
         date_counts = {}

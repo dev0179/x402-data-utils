@@ -5,7 +5,7 @@ End-to-end data utility service (FastAPI backend + Next.js frontend) gated by a 
 ## Endpoints & Prices
 - `POST /validate/csv` ($0.01)
 - `POST /clean/dataframe` ($0.05)
-- `POST /extract/pdf` ($0.05)
+- `POST /extract/pdf` ($0.05) — now text-only (tables removed)
 - `POST /summarize/logs` ($0.02)
 
 ## Wallet Flow (local-only)
@@ -39,8 +39,10 @@ npm install
 export NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000  # or your Render backend URL
 npm run dev
 ```
-Vercel deploy: set project root to `website/`, build `npm run build`, and set `NEXT_PUBLIC_API_BASE` to your backend URL.
-Example live UI at: https://www.devank.cv/x402
+Vercel deploy: set project root to `website/`, build `npm run build`, and set `NEXT_PUBLIC_API_BASE` to your backend URL. Base path/asset prefix are `/x402` for path-based hosting.
+
+## Live Preview
+Current frontend + wallet-signed flow is hosted at https://www.devank.cv/x402 (path-based, mock local wallet signing).
 
 ## Demo Script (terminal)
 ```bash

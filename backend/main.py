@@ -244,16 +244,13 @@ async def clean_dataframe(request: Request):
 
 
 @app.post("/extract/pdf")
-async def extract_pdf_route(file: UploadFile = File(...), mode: str = "text"):
+async def extract_pdf_route(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Please upload a .pdf file")
     raw = await read_upload_bytes(file)
 
-    if mode not in ("text", "tables", "both"):
-        raise HTTPException(status_code=400, detail="mode must be one of: text, tables, both")
-
     try:
-        return extract_pdf(raw, mode=mode)
+        return extract_pdf(raw)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

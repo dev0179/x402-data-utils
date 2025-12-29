@@ -13,6 +13,8 @@ def default_validation_config() -> Dict[str, Any]:
         "no_empty_headers": True,
         "no_empty_rows": False,
         "no_empty_cells": False,
+        # Flags any column where every value is empty/blank/NaN
+        "no_empty_columns": True,
         "strip_whitespace": True,
         "max_rows": 50000,
         "max_cols": 200,
@@ -73,6 +75,7 @@ def validate_csv_full(df: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any
     stats: Dict[str, Any] = {
         "empty_rows": 0,
         "empty_cells": 0,
+        "empty_columns": 0,
         "invalid_types": {},
         "regex_failures": {},
         "duplicates": 0,
@@ -91,11 +94,26 @@ def validate_csv_full(df: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any
             if df[col].dtype == object or isinstance(df[col].dtype, pd.StringDtype):
                 df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
 
-    # Header checks
+    # Header checks (treat pandas auto headers like "Unnamed: 0" as empty)
     if cfg.get("no_empty_headers", True):
         for col in df.columns:
-            if _is_empty(col) or (isinstance(col, str) and col.strip() == ""):
+            if _is_empty(col):
                 add_error("EMPTY_HEADER", "Column header is empty", column=None, row=None, value=None)
+            elif isinstance(col, str):
+                name = col.strip()
+                if name == "" or name.lower().startswith("unnamed"):
+                    add_error("EMPTY_HEADER", "Column header is empty", column=None, row=None, value=col)
+
+    # Empty column check: column with all empty/blank/NaN values
+    if cfg.get("no_empty_columns", True):
+        empty_mask_cols = df.applymap(_is_empty)
+        for col in list(df.columns):
+            if empty_mask_cols[col].all():
+                stats["empty_columns"] += 1
+                add_error("EMPTY_COLUMN", "Column has no data", column=str(col), row=None, value=None)
+                # Drop empty columns so they don't contribute to empty cell counts
+                df = df.drop(columns=[col])
+                empty_mask_cols = df.applymap(_is_empty) if len(df.columns) else empty_mask_cols
 
     # Max rows/cols
     max_rows = cfg.get("max_rows")
@@ -120,6 +138,13 @@ def validate_csv_full(df: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any
         stats["empty_rows"] = int(all_empty.sum())
         for idx in df.index[all_empty]:
             add_error("EMPTY_ROW", "Row is empty", row=int(idx), column=None, value=None)
+        # Remove fully empty rows from further empty-cell accounting
+        df = df.loc[~all_empty].copy()
+        if cfg.get("no_empty_cells"):
+            # recompute empty_mask without empty rows
+            empty_mask = df.isna()
+            if cfg.get("strip_whitespace", True):
+                empty_mask = empty_mask | df.applymap(_is_empty)
 
     # Empty cells
     if cfg.get("no_empty_cells"):
@@ -281,10 +306,9 @@ def validate_csv_full(df: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any
         for idx, val in numeric[above].items():
             add_error("RANGE_FAIL", f"Value {val} above max {max_v}", column=col, row=int(idx), value=val)
 
-    # No negative numbers (across numeric cols)
+    # No negative numbers (across all columns that can be parsed as numeric)
     if cfg.get("no_negative_numbers"):
-        numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        for col in numeric_cols:
+        for col in df.columns:
             numeric = pd.to_numeric(df[col], errors="coerce")
             neg_mask = numeric.notna() & (numeric < 0)
             for idx, val in numeric[neg_mask].items():

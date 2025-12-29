@@ -208,7 +208,7 @@ export default function Home() {
                   method="POST"
                   path="/extract/pdf"
                   title="Extract PDF"
-                  description="Upload PDF and choose extraction mode"
+                  description="Upload PDF to extract text"
                   onSubmit={handleRequest}
                   type="pdf"
                 />
