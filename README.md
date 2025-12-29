@@ -1,6 +1,6 @@
 # x402 Data Utilities (wallet-signed, no chain)
 
-FastAPI data utilities protected by an x402-style invoice/signature gate. Runs locally; no blockchain calls or real payments.
+End-to-end data utility service (FastAPI backend + Next.js frontend) gated by a local x402-style invoice/signature flow. No blockchain calls or real payments.
 
 ## Endpoints & Prices
 - `POST /validate/csv` ($0.01)
