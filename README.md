@@ -40,6 +40,7 @@ export NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000  # or your Render backend URL
 npm run dev
 ```
 Vercel deploy: set project root to `website/`, build `npm run build`, and set `NEXT_PUBLIC_API_BASE` to your backend URL.
+Example live UI at: https://www.devank.cv/x402
 
 ## Demo Script (terminal)
 ```bash
