@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import sys
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -10,14 +12,27 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+# Ensure backend directory is on sys.path for both module and direct runs
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
 
-from cleaning import clean_df
-from csv_validation import default_validation_config, validate_csv_full
-from log_summarize import summarize_logs
-from pdf_extract import extract_pdf
-from x402_wallet.config import load_config
-from x402_wallet.middleware import install_wallet_middleware
-from x402_wallet.store import InMemoryStore, RedisStore
+try:  # prefer package imports
+    from backend.cleaning import clean_df
+    from backend.csv_validation import default_validation_config, validate_csv_full
+    from backend.log_summarize import summarize_logs
+    from backend.pdf_extract import extract_pdf
+    from backend.x402_wallet.config import load_config
+    from backend.x402_wallet.middleware import install_wallet_middleware
+    from backend.x402_wallet.store import InMemoryStore, RedisStore
+except ImportError:  # fallback for direct execution
+    from cleaning import clean_df
+    from csv_validation import default_validation_config, validate_csv_full
+    from log_summarize import summarize_logs
+    from pdf_extract import extract_pdf
+    from x402_wallet.config import load_config
+    from x402_wallet.middleware import install_wallet_middleware
+    from x402_wallet.store import InMemoryStore, RedisStore
 
 app = FastAPI(title="x402 Data Utilities (wallet-gated)", version="1.0.0")
 
