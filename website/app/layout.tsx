@@ -8,25 +8,13 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "x402 Payment Protocol Demo",
-  description: "HTTP 402 Payment Required demonstration with data utilities",
+  title: "x402 Data Utilities",
+  description: "Wallet-signed, pay-per-request data utilities",
   generator: "v0.app",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: "/x.png",
+    shortcut: "/x.png",
+    apple: "/x.png",
   },
 }
 

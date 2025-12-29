@@ -55,7 +55,8 @@ export function ResultsPanel({
           { label: "X-X402-Price", value: responseHeaders["x-x402-price"] },
           { label: "X-X402-PayTo", value: responseHeaders["x-x402-payto"] },
           { label: "X-X402-Path", value: responseHeaders["x-x402-path"] },
-          { label: "X-X402-Mock-Settled", value: responseHeaders["x-x402-mock-settled"] },
+          { label: "X-X402-Receipt", value: responseHeaders["x-x402-receipt"] },
+          { label: "X-X402-Payer", value: responseHeaders["x-x402-payer"] },
         ].map(({ label, value }) => (
           <div key={label}>
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</div>

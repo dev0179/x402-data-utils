@@ -1,23 +1,27 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+
 import os
-import pandas as pd
-import numpy as np
 from io import BytesIO
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import pandas as pd
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 
 from cleaning import clean_df
-from pdf_extract import extract_pdf
+from csv_validation import default_validation_config, validate_csv_full
 from log_summarize import summarize_logs
-from csv_validation import validate_csv_full, default_validation_config
-from x402.fastapi.middleware import require_payment  # type: ignore
-from mock_x402 import install_mock_x402
+from pdf_extract import extract_pdf
+from x402_wallet.config import load_config
+from x402_wallet.middleware import install_wallet_middleware
+from x402_wallet.store import InMemoryStore, RedisStore
 
-app = FastAPI(title="x402 Data Utilities", version="0.1.0")
+app = FastAPI(title="x402 Data Utilities (wallet-gated)", version="1.0.0")
 
-# CORS for local frontend (e.g., Next.js on :3000 or static demo on same origin)
+# CORS for local frontends
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,39 +32,39 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-ROUTE_PRICES = {
+ROUTE_PRICES: Dict[str, str] = {
     "/validate/csv": "0.01",
     "/clean/dataframe": "0.05",
     "/extract/pdf": "0.05",
     "/summarize/logs": "0.02",
 }
 
-_mock_env = os.getenv("MOCK_X402")
-PAY_TO_ADDRESS = os.getenv("PAY_TO_ADDRESS")
+settings = load_config(ROUTE_PRICES)
 
-# Default to mock mode when no PAY_TO_ADDRESS is provided.
-if _mock_env is None and not PAY_TO_ADDRESS:
-    MOCK_X402 = True
+if settings.redis_url:
+    try:
+        store = RedisStore(settings.redis_url)
+        print("[x402-wallet] Using Redis store")
+    except Exception as e:
+        print(f"[x402-wallet] Failed to init Redis store ({e}), falling back to in-memory.")
+        store = InMemoryStore()
 else:
-    MOCK_X402 = _mock_env == "1"
+    store = InMemoryStore()
+    print("[x402-wallet] Using in-memory invoice store")
 
-# In mock mode, fall back to a placeholder address if not provided.
-if MOCK_X402 and not PAY_TO_ADDRESS:
-    PAY_TO_ADDRESS = "0x1111111111111111111111111111111111111111"
+install_wallet_middleware(
+    app,
+    store=store,
+    pay_to_address=settings.pay_to_address,
+    route_prices=settings.route_prices,
+    invoice_ttl=settings.invoice_ttl_seconds,
+)
 
-if not PAY_TO_ADDRESS:
-    raise RuntimeError("Missing PAY_TO_ADDRESS env var (see .env.example).")
-
-if MOCK_X402:
-    install_mock_x402(app, pay_to_address=PAY_TO_ADDRESS, route_prices=ROUTE_PRICES)
-else:
-    # x402 protection per route (different prices)
-    for path, price in ROUTE_PRICES.items():
-        app.middleware("http")(require_payment(price=price, pay_to_address=PAY_TO_ADDRESS, path=path))
 
 @app.get("/health")
 async def health():
     return {"ok": True}
+
 
 async def read_upload_bytes(upload: UploadFile) -> bytes:
     b = await upload.read()
@@ -68,8 +72,10 @@ async def read_upload_bytes(upload: UploadFile) -> bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
     return b
 
+
 def df_to_json_records(df: pd.DataFrame) -> List[Dict[str, Any]]:
     return df.replace({pd.NA: None, np.nan: None}).to_dict(orient="records")
+
 
 def _merge_config(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     merged = base.copy()
@@ -143,6 +149,7 @@ async def validate_csv(
 
     raise HTTPException(status_code=415, detail="Unsupported Content-Type. Use multipart/form-data.")
 
+
 @app.post("/clean/dataframe")
 async def clean_dataframe(request: Request):
     content_type = request.headers.get("content-type", "")
@@ -178,6 +185,7 @@ async def clean_dataframe(request: Request):
     # multipart: file=<csv> rules=<json string>
     if "multipart/form-data" in content_type:
         import json
+
         form = await request.form()
 
         up = form.get("file")
@@ -219,6 +227,7 @@ async def clean_dataframe(request: Request):
 
     raise HTTPException(status_code=415, detail="Unsupported Content-Type. Use application/json or multipart/form-data.")
 
+
 @app.post("/extract/pdf")
 async def extract_pdf_route(file: UploadFile = File(...), mode: str = "text"):
     if not file.filename.lower().endswith(".pdf"):
@@ -232,6 +241,7 @@ async def extract_pdf_route(file: UploadFile = File(...), mode: str = "text"):
         return extract_pdf(raw, mode=mode)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @app.post("/summarize/logs")
 async def summarize_logs_route(request: Request, top_k: int = 10):
@@ -247,5 +257,7 @@ async def summarize_logs_route(request: Request, top_k: int = 10):
 
     return summarize_logs(text, top_k=top_k)
 
+
 # Serve demo UI
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+if os.path.isdir("static"):
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")

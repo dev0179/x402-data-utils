@@ -30,6 +30,12 @@
   },
   "include": [
     "next-env.d.ts",
+    "app/**/*",
+    "components/**/*",
+    "lib/**/*",
+    "hooks/**/*",
+    "styles/**/*",
+    "pages/**/*",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

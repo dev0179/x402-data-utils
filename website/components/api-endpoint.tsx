@@ -62,7 +62,6 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
   const [cleanNormalize, setCleanNormalize] = useState(true)
   const [cleanTrim, setCleanTrim] = useState(true)
   const [cleanDropEmptyRows, setCleanDropEmptyRows] = useState(true)
-  const [cleanDropNulls, setCleanDropNulls] = useState(false)
   const [cleanDedupe, setCleanDedupe] = useState(true)
   const [cleanNoNegatives, setCleanNoNegatives] = useState(false)
   const [cleanNegativeCols, setCleanNegativeCols] = useState("")
@@ -92,7 +91,6 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
         normalize_columns: cleanNormalize,
         trim_strings: cleanTrim,
         drop_empty_rows: cleanDropEmptyRows,
-        drop_nulls: cleanDropNulls,
         deduplicate: cleanDedupe,
         remove_negative_rows: cleanNoNegatives,
       }
@@ -149,7 +147,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
 
   return (
     <div className={cn("group", fullWidth && "lg:col-span-2")}>
-      <div className="h-full rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-6 hover:bg-card transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+      <div className="h-full flex flex-col rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-6 hover:bg-card transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -172,7 +170,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1">
           {(type === "text" || type === "json") && (
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
@@ -205,18 +203,17 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                     { label: "Normalize columns", checked: cleanNormalize, onChange: setCleanNormalize },
                     { label: "Trim strings", checked: cleanTrim, onChange: setCleanTrim },
                     { label: "Drop empty rows", checked: cleanDropEmptyRows, onChange: setCleanDropEmptyRows },
-                    { label: "Drop null rows", checked: cleanDropNulls, onChange: setCleanDropNulls },
                     { label: "Deduplicate rows", checked: cleanDedupe, onChange: setCleanDedupe },
                     { label: "Remove negative rows", checked: cleanNoNegatives, onChange: setCleanNoNegatives },
                     { label: "Include downloadable CSV", checked: cleanIncludeCsv, onChange: setCleanIncludeCsv },
                   ].map(({ label, checked, onChange }) => (
                     <div key={label} className="flex items-center gap-2">
-                      <Checkbox checked={checked} onCheckedChange={onChange} />
+                      <Checkbox checked={checked} onCheckedChange={(v) => onChange(Boolean(v))} />
                       <label className="text-sm cursor-pointer">{label}</label>
                     </div>
                   ))}
                 </div>
-              <div>
+              <div className="mt-4">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
                   Negative check columns (comma-separated)
                 </Label>
@@ -294,7 +291,10 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
                     { label: "Check for negative numbers", checked: noNegatives, onChange: setNoNegatives },
                   ].map(({ label, checked, onChange }) => (
                     <div key={label} className="flex items-center gap-2">
-                      <Checkbox checked={checked} onCheckedChange={onChange} />
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => onChange(Boolean(v))}
+                      />
                       <label className="text-sm cursor-pointer">{label}</label>
                     </div>
                   ))}
@@ -316,7 +316,7 @@ export function ApiEndpoint({ method, path, title, description, onSubmit, type, 
 
           <Button
             onClick={handleSubmit}
-            className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity group"
+            className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity group mt-auto"
             size="lg"
           >
             <Send className="w-4 h-4 mr-2 group-hover:translate-x-0.5 transition-transform" />
