@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   description: "Wallet-signed, pay-per-request data utilities",
   generator: "v0.app",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/x402/x.png",
+    shortcut: "/x402/x.png",
+    apple: "/x402/x.png",
   },
 }
 
