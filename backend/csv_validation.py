@@ -84,9 +84,21 @@ def validate_csv_full(df: pd.DataFrame, config: Dict[str, Any]) -> Dict[str, Any
     row_errors: Dict[int, List[str]] = {}
 
     def add_error(code: str, message: str, column: Optional[str] = None, row: Optional[int] = None, value: Any = None):
-        errors_all.append({"code": code, "message": message, "column": column, "row": row, "value": value})
+        """
+        Store user-facing row numbers as 1-based while keeping the internal mapping 0-based.
+        This keeps CSV error annotations aligned to the DataFrame index but displays rows the way users count them.
+        """
+        display_row: Optional[int] = None
         if row is not None:
-            row_errors.setdefault(row, []).append(message)
+            try:
+                display_row = int(row) + 1
+                row_key = int(row)
+            except Exception:
+                # Fallback in case row is non-numeric; keep as-is
+                display_row = row
+                row_key = row
+            row_errors.setdefault(row_key, []).append(message)
+        errors_all.append({"code": code, "message": message, "column": column, "row": display_row, "value": value})
 
     # Strip whitespace if requested
     if cfg.get("strip_whitespace", True):
