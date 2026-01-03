@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "x402 Data Utilities",
-  description: "Wallet-signed, pay-per-request data utilities",
+  description: "Mock wallet-signed demo UI - no blockchain or real wallet addresses",
   generator: "v0.app",
   icons: {
     icon: "/x402/x.png",

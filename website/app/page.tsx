@@ -162,6 +162,12 @@ export default function Home() {
 
       <div className="relative z-10">
         <Header walletAddress={wallet?.address} />
+        <div className="w-full px-4 sm:px-6 lg:px-8 mt-3">
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-50 shadow-sm">
+            <span className="font-semibold text-amber-100">Demo notice:</span> This UI uses locally generated mock
+            wallets for signing only. No blockchain calls run, no real wallet addresses appear, and no funds ever move.
+          </div>
+        </div>
 
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
           {/* 3/4 main UI (left) and 1/4 timeline (right) */}

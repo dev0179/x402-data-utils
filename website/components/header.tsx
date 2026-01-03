@@ -14,16 +14,16 @@ export function Header({ walletAddress }: HeaderProps) {
           </div>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">x402 Data Utilities</h1>
-            <p className="text-sm text-muted-foreground">Wallet-signed, pay-per-request data tooling</p>
+            <p className="text-sm text-muted-foreground">Mock wallet-signed demo - no blockchain, no real addresses</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center text-[11px]">
-          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Local Wallet</span>
-          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-semibold">402 → 200</span>
-          <span className="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-200 font-semibold">No Chain</span>
+          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Mock Local Wallet</span>
+          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-semibold">No Real Funds</span>
+          <span className="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-200 font-semibold">No Blockchain Calls</span>
           {walletAddress && (
             <span className="px-2 py-0.5 rounded-full bg-card/80 border border-border/50 text-muted-foreground font-mono">
-              {walletAddress.slice(0, 10)}…{walletAddress.slice(-6)}
+              Demo wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
             </span>
           )}
         </div>
